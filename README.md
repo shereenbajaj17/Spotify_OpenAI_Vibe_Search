@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Spotify Vibe Search AI
 
-## Getting Started
+A full-stack, production-grade web application that mimics the UX and feel of Spotify, focused on classical music streaming with an AI-powered "Vibe Search" feature.
 
-First, run the development server:
+## Technology Stack
+- **Frontend**: Next.js 15 (App Router), React 19, Tailwind CSS 4, Zustand 
+- **Backend**: Next.js API Routes, NextAuth.js (Credentials/OAuth ready)
+- **Database**: PostgreSQL with `pgvector` extension, Prisma ORM
+- **AI**: OpenAI `text-embedding-3-small` and `gpt-4o-mini`
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Core Features
+- **Vibe Search**: Enter a natural language phrase (e.g. "Rainy evening, calm but nostalgic") to find matching classical tracks using vector similarity search.
+- **Persistent Player**: Audio seamlessly plays and persists while navigating the application, powered by Zustand.
+- **Library System**: Create playlists, like songs, and view dynamically generated recommendations.
+- **Authentication**: Built-in authentication powered by NextAuth.
+
+## Setup Instructions
+
+### 1. Prerequisites
+- Node.js (v20+ recommended)
+- `pnpm` Package Manager (`npm install -g pnpm` or `corepack enable pnpm`)
+- A PostgreSQL database with the **`pgvector`** extension installed and enabled. (E.g., Supabase, Render, local Docker).
+- An OpenAI API Key
+
+### 2. Environment Variables
+Copy `.env.example` to `.env` (or create a `.env` file) and include the following:
+
+```env
+# PostgreSQL database URL (must have pgvector enabled)
+DATABASE_URL="postgresql://user:password@localhost:5432/spotify_ai_vibe?schema=public"
+
+# NextAuth Configuration
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your_secure_random_string_here" # Generate via `openssl rand -base64 32`
+
+# OpenAI API Key for Vibe Search Embeddings
+OPENAI_API_KEY="sk-..."
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Installation & Database Setup
+Install the dependencies using `pnpm`:
+```bash
+pnpm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Push the database schema to your PostgreSQL instance (this will also create the `vector` extension if your database user has sufficient privileges):
+```bash
+npx prisma db push
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4. Seed the Database
+Seed the database with the initial classical tracks and their OpenAI embeddings. **Ensure your `OPENAI_API_KEY` is set in your `.env` before running this!**
+```bash
+pnpm prisma seed
+```
 
-## Learn More
+### 5. Start the Development Server
+```bash
+pnpm dev
+```
+Navigate to [http://localhost:3000](http://localhost:3000) to start exploring the app.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Architecture & Code Structure
+- `/app`: Next.js App Router pages and API endpoints (`/api/search`, `/api/auth`, etc.)
+- `/components/layout`: Spotify-style UI shells (`Sidebar.tsx`, `BottomPlayer.tsx`)
+- `/store`: Global state management (`usePlayerStore.ts`)
+- `/prisma`: Database schema and seeding scripts.
+- `/lib`: Global singletons (Prisma client, NextAuth configs).
