@@ -3,6 +3,11 @@ import PlayButton from '@/components/ui/PlayButton';
 import LikeButton from '@/components/ui/LikeButton';
 import { Track } from '@prisma/client';
 
+// Force dynamic rendering — this page fetches from the database and must
+// not be pre-rendered statically at build time.
+export const dynamic = 'force-dynamic';
+
+
 export default async function Home() {
   const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening';
 
