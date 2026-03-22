@@ -1,23 +1,33 @@
-import { prisma } from '@/lib/prisma';
+'use client';
+
+import { useEffect, useState } from 'react';
 import PlayButton from '@/components/ui/PlayButton';
 import LikeButton from '@/components/ui/LikeButton';
-import { Track } from '@prisma/client';
 
-// Force dynamic rendering — this page fetches from the database and must
-// not be pre-rendered statically at build time.
-export const dynamic = 'force-dynamic';
+interface Track {
+  id: string;
+  title: string;
+  artist: string;
+  albumArt: string | null;
+  audioUrl: string;
+  duration: number;
+}
 
-
-export default async function Home() {
+export default function Home() {
   const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening';
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Fetch actual tracks from the database
-  const tracks = await prisma.track.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: 12
-  });
+  useEffect(() => {
+    fetch('/api/tracks')
+      .then(r => r.json())
+      .then(data => {
+        setTracks(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
-  // Use the first 6 tracks as the Quick Links instead of mock data
   const quickLinks = tracks.slice(0, 6);
 
   return (
@@ -31,26 +41,33 @@ export default async function Home() {
         {/* Greetings & Quick Links Grid */}
         <section>
           <h1 className="text-[32px] font-bold mb-6 text-white tracking-tight">{greeting}</h1>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-            {quickLinks.map((track: Track) => (
-              <div 
-                key={track.id} 
-                className="bg-white/10 hover:bg-white/20 transition-colors rounded-md flex items-center group cursor-pointer overflow-hidden relative pr-4 shadow-sm h-16"
-              >
-                <img 
-                  src={track.albumArt || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=200&auto=format&fit=crop'} 
-                  alt={track.title} 
-                  className="w-16 h-16 object-cover shadow-lg" 
-                />
-                <span className="font-bold text-white px-4 py-2 block truncate flex-1 text-[15px]">{track.title}</span>
-                
-                {/* Play Button Overlay */}
-                <div className="absolute right-3 opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-xl">
-                   <PlayButton track={track} allTracks={tracks} />
+          {loading ? (
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="bg-white/5 rounded-md h-16 animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+              {quickLinks.map((track) => (
+                <div 
+                  key={track.id} 
+                  className="bg-white/10 hover:bg-white/20 transition-colors rounded-md flex items-center group cursor-pointer overflow-hidden relative pr-4 shadow-sm h-16"
+                >
+                  <img 
+                    src={track.albumArt || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=200&auto=format&fit=crop'} 
+                    alt={track.title} 
+                    className="w-16 h-16 object-cover shadow-lg" 
+                  />
+                  <span className="font-bold text-white px-4 py-2 block truncate flex-1 text-[15px]">{track.title}</span>
+                  
+                  <div className="absolute right-3 opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-xl">
+                    <PlayButton track={track} allTracks={tracks} />
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Recently played */}
@@ -60,7 +77,17 @@ export default async function Home() {
             <span className="text-sm font-bold text-spotify-light hover:underline cursor-pointer">Show all</span>
           </div>
           
-          {tracks.length === 0 ? (
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="bg-[#181818] p-4 rounded-md animate-pulse">
+                  <div className="w-full aspect-square bg-white/10 rounded-md mb-4" />
+                  <div className="h-4 bg-white/10 rounded mb-2" />
+                  <div className="h-3 bg-white/5 rounded w-2/3" />
+                </div>
+              ))}
+            </div>
+          ) : tracks.length === 0 ? (
             <div className="text-spotify-light py-8 text-center bg-black/20 rounded-lg border border-white/5">
               No music found! Add .mp3 files to /public/audio and run the seed script.
             </div>
@@ -77,10 +104,8 @@ export default async function Home() {
                       alt={track.title} 
                       className="w-full h-full object-cover" 
                     />
-                    
-                    {/* Play Button Overlay */}
                     <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 drop-shadow-2xl">
-                       <PlayButton track={track} allTracks={tracks} />
+                      <PlayButton track={track} allTracks={tracks} />
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
