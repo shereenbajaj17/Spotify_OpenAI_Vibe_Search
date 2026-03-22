@@ -1,11 +1,31 @@
 import { PrismaClient } from '@prisma/client';
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+declare global {
+  // eslint-disable-next-line no-var
+  var prismaInstance: PrismaClient | undefined;
+}
 
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    log: ['query'],
-  });
+/**
+ * Lazily creates the PrismaClient only when the first database call is made.
+ * This prevents Prisma 6 from attempting a DB connection during `next build`,
+ * which would fail because the DB isn't accessible from the build server.
+ */
+function getInstance(): PrismaClient {
+  if (!global.prismaInstance) {
+    global.prismaInstance = new PrismaClient({ log: [] });
+  }
+  return global.prismaInstance;
+}
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+// Proxy-based lazy singleton: the PrismaClient is NOT created at import time.
+// It is only created the first time a property/method is accessed (e.g. prisma.track.findMany).
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop: string | symbol) {
+    const instance = getInstance();
+    const value = (instance as any)[prop];
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  },
+});
