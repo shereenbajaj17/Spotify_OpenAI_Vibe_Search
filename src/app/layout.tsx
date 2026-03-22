@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   description: 'AI-powered classical music streaming',
 };
 
+// Prevent ALL pages from being statically prerendered at build time.
+// This app is fully dynamic — it reads from a live database.
+export const dynamic = 'force-dynamic';
+
+
 export default function RootLayout({
   children,
 }: Readonly<{
